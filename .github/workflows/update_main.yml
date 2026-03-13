@@ -1,0 +1,29 @@
+name: Sync Fork
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # Runs daily at midnight UTC
+  workflow_dispatch:  # Allows manual triggering
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create backup branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          DATE=$(date +%Y-%m-%d)
+          git checkout -b main-${DATE}
+          git push origin main-${DATE}
+      - name: Sync fork with upstream
+        run: |
+          git checkout main
+          git remote add upstream ${{ github.server_url }}/${{ github.repository_owner }}/$(echo ${{ github.repository }} | cut -d'/' -f2).git
+          git fetch upstream
+          git merge upstream/main
+          git push origin main
